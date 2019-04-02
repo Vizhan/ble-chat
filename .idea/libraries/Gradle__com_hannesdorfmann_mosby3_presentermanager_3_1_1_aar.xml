@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Gradle: com.hannesdorfmann.mosby3:presentermanager:3.1.1@aar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/transforms-1/files-1.1/presentermanager-3.1.1.aar/39b1e3178070c1152eed9b3ec0c9a21b/jars/classes.jar!/" />
+      <root url="file://$USER_HOME$/.gradle/caches/transforms-1/files-1.1/presentermanager-3.1.1.aar/39b1e3178070c1152eed9b3ec0c9a21b/res" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.hannesdorfmann.mosby3/presentermanager/3.1.1/ad38ecfc58b4adb7baf6cdd24b9888fd4b5846dc/presentermanager-3.1.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

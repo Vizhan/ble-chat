@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menuDiscover"
+        android:title="Discover devices" />
+    <item
+        android:id="@+id/menuAdvertise"
+        android:title="Advertise (create server)" />
+</menu>

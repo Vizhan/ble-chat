@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.hannesdorfmann.mosby3:mvi-common:3.1.1@jar">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.hannesdorfmann.mosby3/mvi-common/3.1.1/d11e1f41b71241bb66c14b5762200166417e1db2/mvi-common-3.1.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.hannesdorfmann.mosby3/mvi-common/3.1.1/b28e57a0ba7df9883dc1a645664c56922b030cd5/mvi-common-3.1.1-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
