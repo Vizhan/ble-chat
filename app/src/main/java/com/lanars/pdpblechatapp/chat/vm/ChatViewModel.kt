@@ -4,10 +4,14 @@ import android.app.Application
 import android.arch.lifecycle.AndroidViewModel
 import android.arch.lifecycle.MutableLiveData
 import android.bluetooth.BluetoothDevice
-import android.util.Log
-import com.lanars.pdpblechatapp.chat.*
+import com.lanars.pdpblechatapp.ble.*
+import com.lanars.pdpblechatapp.ble.client.BleClientCallback
+import com.lanars.pdpblechatapp.ble.client.BleClientManager
+import com.lanars.pdpblechatapp.ble.server.BleServerCallback
+import com.lanars.pdpblechatapp.ble.server.BleServerManager
 
-class ChatViewModel(application: Application) : AndroidViewModel(application), BleServerCallback, BleClientCallback {
+class ChatViewModel(application: Application) : AndroidViewModel(application),
+    BleServerCallback, BleClientCallback {
     private lateinit var mode: BleMode
 
     val enableBluetoothLiveData = MutableLiveData<Unit>()
@@ -40,7 +44,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application), B
             if (mode == BleMode.SERVER) {
                 BleServerManager.sendMessage(input)
             } else if (mode === BleMode.CLIENT) {
-                BleClientManager.sendMessage(input)
+//                BleClientManager.sendMessage(input)
+                BleClientManager.sendMultiDataMessage(input.toByteArray())
             }
 //            showOutgoingMessage(message)
         }

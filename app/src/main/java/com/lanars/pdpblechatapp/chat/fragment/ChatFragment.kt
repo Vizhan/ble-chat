@@ -16,7 +16,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import com.lanars.pdpblechatapp.R
-import com.lanars.pdpblechatapp.chat.Message
+import com.lanars.pdpblechatapp.chat.adapter.ChatRecyclerAdapter
+import com.lanars.pdpblechatapp.chat.vo.Message
 import com.lanars.pdpblechatapp.chat.dialog.DeviceListDialogFragment
 import com.lanars.pdpblechatapp.chat.vm.ChatViewModel
 import kotlinx.android.synthetic.main.fragment_chat.*
