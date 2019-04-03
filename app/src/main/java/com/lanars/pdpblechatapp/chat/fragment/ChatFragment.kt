@@ -17,9 +17,9 @@ import android.view.View
 import android.view.ViewGroup
 import com.lanars.pdpblechatapp.R
 import com.lanars.pdpblechatapp.chat.adapter.ChatRecyclerAdapter
-import com.lanars.pdpblechatapp.chat.vo.Message
 import com.lanars.pdpblechatapp.chat.dialog.DeviceListDialogFragment
 import com.lanars.pdpblechatapp.chat.vm.ChatViewModel
+import com.lanars.pdpblechatapp.chat.vo.Message
 import kotlinx.android.synthetic.main.fragment_chat.*
 import org.koin.android.viewmodel.ext.android.viewModel
 
@@ -49,7 +49,7 @@ class ChatFragment : Fragment() {
 
                 }
                 BluetoothAdapter.STATE_OFF -> {
-
+                    activity?.finish()
                 }
             }
         }
@@ -62,13 +62,13 @@ class ChatFragment : Fragment() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
-        initToolbar()
-        initRecyclerView()
-
-        viewModel.enableBluetoothLiveData.observe(viewLifecycleOwner, Observer {
+        if (bleAdapter?.isDisabled == true) {
             val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
             startActivityForResult(enableBtIntent, ChatFragment.REQUEST_ENABLE_BT)
-        })
+        }
+
+        initToolbar()
+        initRecyclerView()
 
         viewModel.discoveredDevicesLiveData.observe(viewLifecycleOwner, Observer {
             it ?: return@Observer
@@ -96,8 +96,13 @@ class ChatFragment : Fragment() {
             it ?: return@Observer
 
             if (it) {
-                val temp = tbChat.title
-                tbChat.title = "$temp CONNECTED"
+                if (dialog.isAdded && dialog.isVisible) {
+                    tbChat.title = "CLIENT CONNECTED"
+                    dialog.close()
+                } else {
+                    tbChat.title = "SERVER CONNECTED"
+                }
+
                 Snackbar.make(root, "Device connected", Snackbar.LENGTH_LONG).show()
             } else {
                 tbChat.title = "DISCONNECTED"
@@ -122,18 +127,19 @@ class ChatFragment : Fragment() {
             viewModel.onSendButtonClicked(etMessage.editableText.toString())
             etMessage.editableText.clear()
         }
-
-
-        //add request course || fine location permission
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_ENABLE_BT) {
+        if (requestCode == REQUEST_ENABLE_BT) {
+            if (resultCode == RESULT_OK) {
                 Log.i("+++", "onActivityResult_REQUEST_RESULT_OK")
+
+            } else {
+                activity?.finish()
             }
         }
+
     }
 
     private fun initToolbar() {
@@ -164,5 +170,10 @@ class ChatFragment : Fragment() {
             orientation = LinearLayoutManager.VERTICAL
             reverseLayout = true
         }
+    }
+
+    override fun onDestroy() {
+        context?.unregisterReceiver(bluetoothReceiver)
+        super.onDestroy()
     }
 }

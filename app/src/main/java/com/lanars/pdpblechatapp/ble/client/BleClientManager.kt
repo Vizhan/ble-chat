@@ -11,6 +11,7 @@ import com.polidea.rxandroidble2.scan.ScanFilter
 import com.polidea.rxandroidble2.scan.ScanSettings
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
+import org.koin.ext.isInt
 import java.util.*
 
 object BleClientManager {
@@ -22,9 +23,6 @@ object BleClientManager {
     private lateinit var rxBleClient: RxBleClient
     private lateinit var rxBleDevice: RxBleDevice
     private var connectedDevice: BluetoothDevice? = null
-
-    private val BluetoothAdapter.isDisabled: Boolean
-        get() = !isEnabled
 
     fun init(context: Application?, bleClientCallback: BleClientCallback) {
         context ?: throw RuntimeException("Context cannot be null")
@@ -54,13 +52,15 @@ object BleClientManager {
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe({ scanResult ->
                     Log.d("+++", "bleClientRx.scanBleDevices - SUCCESS")
-                    rxBleDevice = scanResult.bleDevice
                     bleClientManagerCallback.onScanResults(scanResult.bleDevice.bluetoothDevice)
                 }, {
                     Log.e("+++", "bleClientRx.scanBleDevices - ERROR")
                 })
 
     }
+
+    private var incomingChunksCounter = 0
+    private var incomingMessageBuilder = StringBuilder()
 
     private var gattClientCallback: BluetoothGattCallback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
@@ -111,7 +111,6 @@ object BleClientManager {
         override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
             Log.i("+++ CLIENT", "onCharacteristicWrite")
 
-
             if (packetInteraction < packetSize) { // for sendMultiDataMessage function
                 val characteristicData = bleConnectedGatt
                         ?.getService(BleChatGattProfile.SERVICE_UUID)
@@ -131,9 +130,27 @@ object BleClientManager {
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
             super.onCharacteristicChanged(gatt, characteristic)
             Log.i("+++ CLIENT", "onCharacteristicChanged")
-            Log.i("+++", "Notification of message characteristic changed on server.")
             if (BleChatGattProfile.CHARACTERISTIC_MESSAGE_UUID == characteristic.uuid) {
-                bleClientManagerCallback.incomingMessage(characteristic.getStringValue(0))
+
+                val msg = characteristic.getStringValue(0)
+
+                if (msg.isInt()) {
+                    incomingChunksCounter = msg.toInt()
+                    Log.i("+++", "COUNTER IS INTEGER $incomingChunksCounter  <<<<<")
+                } else {
+                    if (incomingChunksCounter != 0) {
+                        Log.i("+++", "VALUE $incomingChunksCounter  <<<<<")
+                        incomingMessageBuilder.append(msg)
+                        incomingChunksCounter--
+                    }
+
+                    if (incomingChunksCounter == 0) {
+                        Log.i("+++", "RESULT $incomingMessageBuilder  <<<<<")
+                        bleClientManagerCallback.incomingMessage(incomingMessageBuilder.toString())
+                        incomingMessageBuilder.clear()
+                    }
+                }
+
             }
         }
     }
@@ -143,7 +160,7 @@ object BleClientManager {
         connectedDevice = device
 
         bleConnectedGatt = device.connectGatt(context, false, gattClientCallback)
-//        bleConnectedGatt?.requestMtu(512) // max value 512 bytes - if supported by device.  Issue => close connection
+        //  bleConnectedGatt?.requestMtu(512) // max value 512 bytes - if supported by device.
     }
 
     fun onCleared() {
@@ -162,16 +179,14 @@ object BleClientManager {
     lateinit var packets: Array<ByteArray>
 
     fun sendMultiDataMessage(data: ByteArray) {
-        val chunkSize = 20.0 //20 default byte chunk
+        val chunkSize = 20.0 // default chunk size
         packetSize = Math.ceil(data.size / chunkSize).toInt()
 
-        // this is use as header, so peripheral device know how much packet will be received.
         val characteristicData = bleConnectedGatt
                 ?.getService(BleChatGattProfile.SERVICE_UUID)
                 ?.getCharacteristic(BleChatGattProfile.CHARACTERISTIC_MESSAGE_UUID)
 
-//        characteristicData?.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT // ??
-
+        // this is header, so peripheral device know how much packets will central send.
         characteristicData?.value = packetSize.toString().toByteArray()
 
         bleConnectedGatt?.writeCharacteristic(characteristicData)

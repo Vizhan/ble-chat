@@ -37,6 +37,10 @@ class DeviceListDialogFragment : DialogFragment() {
         }
     }
 
+    fun close() {
+        dismiss()
+    }
+
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val view = (LayoutInflater.from(activity).inflate(R.layout.dialog_fragment_device_list, null) as ViewGroup)
 

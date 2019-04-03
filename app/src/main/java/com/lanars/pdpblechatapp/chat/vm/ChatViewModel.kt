@@ -14,7 +14,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application),
     BleServerCallback, BleClientCallback {
     private lateinit var mode: BleMode
 
-    val enableBluetoothLiveData = MutableLiveData<Unit>()
     val discoveredDevicesLiveData = MutableLiveData<BluetoothDevice>()
     val incomingMessageLiveData = MutableLiveData<String>()
     val outgoingMessageLiveData = MutableLiveData<String>()
@@ -42,7 +41,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application),
     fun onSendButtonClicked(input: String) {
         if (input.isNotEmpty()) {
             if (mode == BleMode.SERVER) {
-                BleServerManager.sendMessage(input)
+                BleServerManager.sendMultiDataMessage(input)
             } else if (mode === BleMode.CLIENT) {
                 BleClientManager.sendMultiDataMessage(input.toByteArray())
             }
@@ -55,10 +54,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application),
     }
 
     // BleServerCallback
-    override fun enableBluetooth() {
-        enableBluetoothLiveData.postValue(null)
-    }
-
     override fun onInitServerSuccess() {
         BleServerManager.initService()
         BleServerManager.startAdvertising()
@@ -73,13 +68,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application),
         //show msg
     }
 
-
     override fun onConnectionError(error: String) {
         //show msg
-    }
-
-    override fun onOutgoingMessage(msg: String) {
-        outgoingMessageLiveData.postValue(msg)
     }
 
     override fun onIncomingMessage(msg: String) {
@@ -109,10 +99,6 @@ class ChatViewModel(application: Application) : AndroidViewModel(application),
 
     override fun incomingMessage(msg: String) {
         incomingMessageLiveData.postValue(msg)
-    }
-
-    override fun outgoingMessage(msg: String) {
-        outgoingMessageLiveData.postValue(msg)
     }
 
     override fun isClientConnected(isConnected: Boolean) {
