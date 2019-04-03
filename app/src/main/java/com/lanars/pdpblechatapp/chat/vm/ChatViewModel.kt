@@ -17,10 +17,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application),
     val discoveredDevicesLiveData = MutableLiveData<BluetoothDevice>()
     val incomingMessageLiveData = MutableLiveData<String>()
     val outgoingMessageLiveData = MutableLiveData<String>()
-    val isConnectedLiveData = MutableLiveData<Boolean>()
+    val isServerConnectedLiveData = MutableLiveData<Boolean>()
+    val isClientConnectedLiveData = MutableLiveData<Boolean>()
 
     val serverLiveData = MutableLiveData<String>()
-    val clientLiveData = MutableLiveData<String>()
 
     fun advertise() {
         mode = BleMode.SERVER
@@ -77,7 +77,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application),
     }
 
     override fun isServerConnected(isConnected: Boolean) {
-        isConnectedLiveData.postValue(isConnected)
+        if (mode == BleMode.CLIENT) return
+        isServerConnectedLiveData.postValue(isConnected)
     }
 
     override fun serverStarted() {
@@ -102,7 +103,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application),
     }
 
     override fun isClientConnected(isConnected: Boolean) {
-        isConnectedLiveData.postValue(isConnected)
+        if (mode == BleMode.SERVER) return
+        isClientConnectedLiveData.postValue(isConnected)
     }
 
     override fun onCleared() {

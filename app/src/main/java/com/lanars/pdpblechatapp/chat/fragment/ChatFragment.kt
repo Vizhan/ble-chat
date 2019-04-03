@@ -92,20 +92,27 @@ class ChatFragment : Fragment() {
             Log.i("+++", "OUTGOING = $it")
         })
 
-        viewModel.isConnectedLiveData.observe(viewLifecycleOwner, Observer {
+        viewModel.isServerConnectedLiveData.observe(viewLifecycleOwner, Observer {
             it ?: return@Observer
 
             if (it) {
-                if (dialog.isAdded && dialog.isVisible) {
-                    tbChat.title = "CLIENT CONNECTED"
-                    dialog.close()
-                } else {
-                    tbChat.title = "SERVER CONNECTED"
-                }
-
+                tbChat.title = "SERVER CONNECTED"
                 Snackbar.make(root, "Device connected", Snackbar.LENGTH_LONG).show()
             } else {
-                tbChat.title = "DISCONNECTED"
+                tbChat.title = "SERVER DISCONNECTED"
+                Snackbar.make(root, "Device disconnected", Snackbar.LENGTH_LONG).show()
+            }
+        })
+
+        viewModel.isClientConnectedLiveData.observe(viewLifecycleOwner, Observer {
+            it ?: return@Observer
+
+            if (it) {
+                dialog.close()
+                tbChat.title = "CLIENT CONNECTED"
+                Snackbar.make(root, "Device connected", Snackbar.LENGTH_LONG).show()
+            } else {
+                tbChat.title = "CLIENT DISCONNECTED"
                 Snackbar.make(root, "Device disconnected", Snackbar.LENGTH_LONG).show()
             }
         })
