@@ -11,4 +11,5 @@
 /app/releaseTest
 /captures
 .externalNativeBuild
-.idea
+*.idea
+*.gradle

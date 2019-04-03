@@ -112,14 +112,14 @@ object BleClientManager {
             Log.i("+++ CLIENT", "onCharacteristicWrite")
 
 
-            if (packetInteration < packetSize) { // for sendMultiDataMessage function
+            if (packetInteraction < packetSize) { // for sendMultiDataMessage function
                 val characteristicData = bleConnectedGatt
                         ?.getService(BleChatGattProfile.SERVICE_UUID)
                         ?.getCharacteristic(BleChatGattProfile.CHARACTERISTIC_MESSAGE_UUID)
 
-                characteristicData?.value = packets[packetInteration]
+                characteristicData?.value = packets[packetInteraction]
                 bleConnectedGatt?.writeCharacteristic(characteristicData)
-                packetInteration++
+                packetInteraction++
             }
         }
 
@@ -146,22 +146,6 @@ object BleClientManager {
 //        bleConnectedGatt?.requestMtu(512) // max value 512 bytes - if supported by device.  Issue => close connection
     }
 
-    fun sendMessage(message: String) {
-        val characteristic = bleConnectedGatt
-                ?.getService(BleChatGattProfile.SERVICE_UUID)
-                ?.getCharacteristic(BleChatGattProfile.CHARACTERISTIC_MESSAGE_UUID)
-
-//        characteristic?.writeType = BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE // multi packages
-        characteristic?.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-        characteristic?.value = message.toByteArray()
-        if (bleConnectedGatt?.writeCharacteristic(characteristic)?.not() == true) {
-            Log.i("+++", "Couldn't send data")
-        }
-
-        bleClientManagerCallback.outgoingMessage(message)
-    }
-
-
     fun onCleared() {
         if (!searchDisposable.isDisposed) searchDisposable.dispose()
 
@@ -174,36 +158,37 @@ object BleClientManager {
     }
 
     var packetSize = 0
-    var packetInteration = 0
+    var packetInteraction = 0
     lateinit var packets: Array<ByteArray>
 
     fun sendMultiDataMessage(data: ByteArray) {
-        var chunksize = 20.0 //20 byte chunk
-        packetSize = Math.ceil(data.size / chunksize).toInt() //make this variable public so we can access it on the other function
+        val chunkSize = 20.0 //20 default byte chunk
+        packetSize = Math.ceil(data.size / chunkSize).toInt()
 
-        //this is use as header, so peripheral device know ho much packet will be received.
-
+        // this is use as header, so peripheral device know how much packet will be received.
         val characteristicData = bleConnectedGatt
                 ?.getService(BleChatGattProfile.SERVICE_UUID)
                 ?.getCharacteristic(BleChatGattProfile.CHARACTERISTIC_MESSAGE_UUID)
+
+//        characteristicData?.writeType = BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT // ??
 
         characteristicData?.value = packetSize.toString().toByteArray()
 
         bleConnectedGatt?.writeCharacteristic(characteristicData)
         bleConnectedGatt?.executeReliableWrite()
 
-        packets = Array(packetSize) { ByteArray(chunksize.toInt()) }
-        packetInteration = 0
+        packets = Array(packetSize) { ByteArray(chunkSize.toInt()) }
+        packetInteraction = 0
         var start = 0
 
         packets.forEachIndexed { index, bytes ->
-            var end = start + chunksize
+            var end = start + chunkSize
             if (end > data.size) {
                 end = data.size.toDouble()
             }
 
             packets[index] = Arrays.copyOfRange(data, start, end.toInt())
-            start += chunksize.toInt()
+            start += chunkSize.toInt()
         }
     }
 }

@@ -11,7 +11,9 @@ import android.content.pm.PackageManager
 import android.os.ParcelUuid
 import android.util.Log
 import com.lanars.pdpblechatapp.ble.BleChatGattProfile
+import org.koin.ext.isInt
 import java.io.UnsupportedEncodingException
+import java.lang.StringBuilder
 import java.nio.charset.Charset
 
 
@@ -70,22 +72,25 @@ object BleServerManager {
     fun startAdvertising() {
         bleAdvertiser?.let {
             val settings = AdvertiseSettings.Builder()
-                    .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
-                    .setConnectable(true)
-                    .setTimeout(0)
-                    .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
-                    .build()
+                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_BALANCED)
+                .setConnectable(true)
+                .setTimeout(0)
+                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_MEDIUM)
+                .build()
 
             val data = AdvertiseData.Builder()
-                    .setIncludeDeviceName(false)
+                .setIncludeDeviceName(false)
 //                    .setIncludeTxPowerLevel(false)
-                    .addServiceUuid(ParcelUuid(BleChatGattProfile.SERVICE_UUID))
-                    .build()
+                .addServiceUuid(ParcelUuid(BleChatGattProfile.SERVICE_UUID))
+                .build()
 
             it.startAdvertising(settings, data, advertiserCallback)
         }
-                ?: Log.i("+++ SERVER", "Failed to create advertiser")
+            ?: Log.i("+++ SERVER", "Failed to create advertiser")
     }
+
+    private var incomingChunksCounter = 0
+    private var incomingMessageBuilder = StringBuilder()
 
     private val gattServerCallback = object : BluetoothGattServerCallback() {
         override fun onConnectionStateChange(device: BluetoothDevice, status: Int, newState: Int) {
@@ -110,7 +115,12 @@ object BleServerManager {
             }
         }
 
-        override fun onCharacteristicReadRequest(device: BluetoothDevice, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic) {
+        override fun onCharacteristicReadRequest(
+            device: BluetoothDevice,
+            requestId: Int,
+            offset: Int,
+            characteristic: BluetoothGattCharacteristic
+        ) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
             Log.i("+++ SERVER", "onCharacteristicReadRequest " + characteristic.uuid.toString())
 
@@ -123,15 +133,47 @@ object BleServerManager {
             super.onMtuChanged(device, mtu)
         }
 
-        override fun onCharacteristicWriteRequest(device: BluetoothDevice, requestId: Int, characteristic: BluetoothGattCharacteristic, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
-            super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
+        override fun onCharacteristicWriteRequest(
+            device: BluetoothDevice,
+            requestId: Int,
+            characteristic: BluetoothGattCharacteristic,
+            preparedWrite: Boolean,
+            responseNeeded: Boolean,
+            offset: Int,
+            value: ByteArray
+        ) {
+            super.onCharacteristicWriteRequest(
+                device,
+                requestId,
+                characteristic,
+                preparedWrite,
+                responseNeeded,
+                offset,
+                value
+            )
             Log.i("+++ SERVER", "onCharacteristicWriteRequest " + characteristic.uuid.toString())
             var gatResult = BluetoothGatt.GATT_SUCCESS
             try {
                 if (BleChatGattProfile.CHARACTERISTIC_MESSAGE_UUID == characteristic.uuid) {
                     val msg = String(value, Charset.forName("UTF-8"))
 
-                    bleServerManagerCallback.onIncomingMessage(msg)
+                    if (msg.isInt()) {
+                        incomingChunksCounter = msg.toInt()
+                        Log.i("+++", "COUNTER IS INTEGER $incomingChunksCounter  <<<<<")
+                    } else {
+                        if (incomingChunksCounter != 0) {
+                            Log.i("+++", "VALUE $incomingChunksCounter  <<<<<")
+                            incomingMessageBuilder.append(msg)
+                            incomingChunksCounter--
+                        }
+
+                        if (incomingChunksCounter == 0) {
+                            Log.i("+++", "RESULT $incomingMessageBuilder  <<<<<")
+                            bleServerManagerCallback.onIncomingMessage(incomingMessageBuilder.toString())
+                            incomingMessageBuilder.clear()
+                        }
+                    }
+
                 }
             } catch (ex: UnsupportedEncodingException) {
                 bleServerManagerCallback.onConnectionError(ex.toString())
@@ -143,7 +185,15 @@ object BleServerManager {
             }
         }
 
-        override fun onDescriptorWriteRequest(device: BluetoothDevice, requestId: Int, descriptor: BluetoothGattDescriptor, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray) {
+        override fun onDescriptorWriteRequest(
+            device: BluetoothDevice,
+            requestId: Int,
+            descriptor: BluetoothGattDescriptor,
+            preparedWrite: Boolean,
+            responseNeeded: Boolean,
+            offset: Int,
+            value: ByteArray
+        ) {
             Log.i("+++ SERVER", "onDescriptorWriteRequest")
             if (responseNeeded) {
                 bleGattServer.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, offset, value)
@@ -162,17 +212,12 @@ object BleServerManager {
 
     fun sendMessage(message: String) {
         val msgCharacteristic = bleGattServer
-                .getService(BleChatGattProfile.SERVICE_UUID)
-                .getCharacteristic(BleChatGattProfile.CHARACTERISTIC_MESSAGE_UUID)
+            .getService(BleChatGattProfile.SERVICE_UUID)
+            .getCharacteristic(BleChatGattProfile.CHARACTERISTIC_MESSAGE_UUID)
 
         msgCharacteristic.setValue(message)
 
         bleGattServer.notifyCharacteristicChanged(connectedDevice, msgCharacteristic, false)
-
-        bleServerManagerCallback.onOutgoingMessage(message)
-
-        //
-
     }
 
     fun onCleared() {

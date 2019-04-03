@@ -44,11 +44,14 @@ class ChatViewModel(application: Application) : AndroidViewModel(application),
             if (mode == BleMode.SERVER) {
                 BleServerManager.sendMessage(input)
             } else if (mode === BleMode.CLIENT) {
-//                BleClientManager.sendMessage(input)
                 BleClientManager.sendMultiDataMessage(input.toByteArray())
             }
-//            showOutgoingMessage(message)
+            showOutgoingMessage(input)
         }
+    }
+
+    private fun showOutgoingMessage(message: String) {
+        outgoingMessageLiveData.postValue(message)
     }
 
     // BleServerCallback
